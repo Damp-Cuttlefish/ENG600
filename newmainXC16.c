@@ -19,6 +19,7 @@ const float x_offset_l = 0;
 const float x_offset_r = 0;
 const float y_offset_l = 0;
 const float y_offset_r = 0;
+const float pi = 3.14159265359;
 /*--------------Prototypes--------------*/
 
 void control_step( void );
@@ -278,8 +279,17 @@ void switcheroo(int p1, int p2, struct Camera *Cam){
 }
 
 void poscalc( void ){
-    c_space.P1.z = 
-    c_space.P1.x = LCam.P1.x;
+    float A, B, C; //Sensor mount, LCam, RCam
+    float a, b, c; //Helm, RCam, LCam
+    
+    A = sensor_width;
+    
+    B = (A*sinf(c))/sin(pi-(b + c));
+    c_space.P1.z = B*sinf(c);
+    c_space.P1.x = B*sinf(90-c);
+    
+    
+            c_space.P1.x = LCam.P1.x;
     c_space.P2.x = LCam.P2.x;
     
     
