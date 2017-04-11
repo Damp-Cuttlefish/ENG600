@@ -15,7 +15,10 @@
 
 /*--------------Definitions--------------*/
 const int sensor_width = 100;
-
+const float x_offset_l = 0;
+const float x_offset_r = 0;
+const float y_offset_l = 0;
+const float y_offset_r = 0;
 /*--------------Prototypes--------------*/
 
 void control_step( void );
@@ -275,6 +278,11 @@ void switcheroo(int p1, int p2, struct Camera *Cam){
 }
 
 void poscalc( void ){
+    c_space.P1.z = 
+    c_space.P1.x = LCam.P1.x;
+    c_space.P2.x = LCam.P2.x;
+    
+    
     
 }
 
@@ -284,9 +292,9 @@ int anglecalc(struct Camera LCam, struct Camera Rcam){
     
     struct Coord long_vector;
     
-    long_vector.x = c_space.P1.x - c_space.P3.x;
-    long_vector.y = c_space.P1.y - c_space.P3.y;
-    long_vector.z = c_space.P1.z - c_space.P3.z;
+    long_vector.x = c_space.P1.x - c_space.P2.x;
+    long_vector.y = c_space.P1.y - c_space.P2.y;
+    long_vector.z = c_space.P1.z - c_space.P2.z;
     
     panAngle = atan2f(long_vector.y, long_vector.x);
     tiltAngle = atan2f(sqrtf(powf(long_vector.y, (float) 2)+powf(long_vector.x, (float) 2)), long_vector.z);
