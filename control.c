@@ -1,19 +1,21 @@
 #include "misc.h"
 #include "xc.h"
+
+const float K = 20;
 float x_error = 0;
 float y_error = 0;
 
 extern float x_target;
 extern float y_target;
 extern int capture;
-extern int index;
+//extern int index;
 extern int data[300];
 
 void control_step( void ){
     
     
     x_error = x_target - POS2CNT;
-    float temp = 900 - (float) 50.5*(x_error);
+    float temp = 900 - (float) K*(x_error);
     if (temp < 1)
         P1DC1 = 1;
     else if (temp > 1799)
@@ -23,7 +25,7 @@ void control_step( void ){
     
     
     y_error = y_target - POS1CNT;
-    temp = 900 - (float) 50.5*(y_error);
+    temp = 900 - (float) K*(y_error);
     if (temp < 1)
         P1DC2 = 1;
     else if (temp > 1799)
@@ -31,11 +33,11 @@ void control_step( void ){
     else
         P1DC2 = temp;
     
-    if (x_target == 4250)
-        if (index < 3000){
-            data[index] = POS2CNT;
-            index++;
-        }
+//    if (x_target == 4250)
+//        if (index < 3000){
+//            data[index] = POS2CNT;
+//            index++;
+//        }
     
 }
 

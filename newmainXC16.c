@@ -19,8 +19,10 @@ const int sensor_width = 100;
 /*--------------Prototypes--------------*/
 
 void control_step( void );
-void ident(void);
+void ident( struct Camera *Cam );
 void servoFollow( void );
+void switcheroo(int, int, struct Camera *Cam);
+void poscalc( void );
 /*--------------Global Variables--------------*/
 
 float x_target_raw = 0;
@@ -28,6 +30,7 @@ float y_target_raw = 0;
 
 char bsize = 0;
 
+float prevangle = 0;
 
 float x_target = 4000;
 float y_target = 4000;
@@ -39,7 +42,7 @@ struct Camera LCam;
 struct Camera RCam;
 
 int data[3000];
-int index = 0;
+//int index = 0;
 
 
 char control_tone = 0;
@@ -56,40 +59,45 @@ int main(void)
 
 
     /************************Debug************************/
-    LRPin = 0;
-    __delay32(100000);    
-    sensor_rst();
-    __delay32(10000);
-    sensor_init();
-    __delay32(10000);
+    
+    
     
     
     Motor_Enable = 1;
     while(1){
+        LRPin = 0;
         sensor_rst();
         __delay32(100);
-
         sensor_init();
-        __delay32(50000);
-        
-        LEDPin = 0;
+        __delay32(2000);
+        //LEDPin = 0;
         blobs = sensor_read1(&LCam);
-        LEDPin = 1;     
+        //LEDPin = 1;     
         
-        ident();
-          
+        LRPin = 1;
+        sensor_rst();
+        __delay32(100);
+        sensor_init();
+        __delay32(2000);
+        //LEDPin = 0;
+        blobs = sensor_read1(&RCam);
+        
+        ident(&LCam);
+        ident(&RCam);
+        
+        poscalc();
         
         if((LCam.P1.state && LCam.P2.state)){
-            x_target_raw = 4000 + 79.6*atanf(((float) LCam.P1.x - (float) LCam.P2.x) / ((float) LCam.P1.y - (float) LCam.P2.y));
+            x_target_raw = 4000 - 159*atanf(((float) LCam.S1.x - (float) LCam.S2.x) / ((float) LCam.S1.y - (float) LCam.S2.y));
             control_tone = 0;
         }
         else{
-            x_target_raw = 4000;
+            //x_target_raw = 4000;
             control_tone = 1;
         }
-//        if(LCam.P1.state){
-//            x_target_raw = 3750 + 0.5*LCam.P1.x;
-//            y_target_raw = 3875 + 0.25*LCam.P1.y;
+//        if(Cam->P1.state){
+//            x_target_raw = 3750 + 0.5*Cam->P1.x;
+//            y_target_raw = 3875 + 0.25*Cam->P1.y;
 //        }
         control_limit(&x_target_raw, &y_target_raw);
         x_target = x_target_raw;
@@ -100,8 +108,7 @@ int main(void)
     //sensor_init();
     x_target = 4000;
     y_target = 4000;
-    float acount = 0;
-    char temp = 0;
+    
     __delay32(5000000);
                //Enable motors
     
@@ -141,125 +148,134 @@ void step( void ){
 
 
 
-void ident(void){
+void ident( struct Camera *Cam ){
     int p1y = 0;
     int p2y = 0;
     int p1 = 0;
     int p2 = 0;
     
+    prevangle = atanf(((float) Cam->P1.x - (float) Cam->P2.x) / ((float) Cam->P1.y - (float) Cam->P2.y)); //-pi => +pi
     
     if(blobs && BLOB2){
-        if ((LCam.S1.x > 0) && (LCam.S1.x < 1023)){
-            if (LCam.S1.y > p1y){
-                p1y = LCam.S1.y;
+        if ((Cam->S1.x > 0) && (Cam->S1.x < 1023)){
+            if (Cam->S1.y > p1y){
+                p1y = Cam->S1.y;
                 p1 = 1;                
             }
         }
     }
     if(blobs && BLOB2){
-        if ((LCam.S2.x > 0) && (LCam.S2.x < 1023)){
+        if ((Cam->S2.x > 0) && (Cam->S2.x < 1023)){
             
-            if (LCam.S2.y > p1y){
+            if (Cam->S2.y > p1y){
                 p2y = p1y;
                 p2 = p1;
-                p1y = LCam.S2.y;
+                p1y = Cam->S2.y;
                 p1 = 2;
             }
-            else if(LCam.S2.y > p2y){
-                p2y = LCam.S2.y;
+            else if(Cam->S2.y > p2y){
+                p2y = Cam->S2.y;
                 p2 = 2;
             }
         }
     }
     if(blobs && BLOB3){
-        if ((LCam.S3.x > 0) && (LCam.S3.x < 1023)){
-            if (LCam.S3.y > p1y){
+        if ((Cam->S3.x > 0) && (Cam->S3.x < 1023)){
+            if (Cam->S3.y > p1y){
                 p2y = p1y;
                 p2 = p1;
-                p1y = LCam.S3.y;
+                p1y = Cam->S3.y;
                 p1 = 3;
             }
-            else if(LCam.S3.y > p2y){
-                p2y = LCam.S3.y;
+            else if(Cam->S3.y > p2y){
+                p2y = Cam->S3.y;
                 p2 = 3;
             }
         }
     }
     if(blobs && BLOB4){
-        if ((LCam.S4.x > 0) && (LCam.S4.x < 1023)){
-            if (LCam.S4.y > p1y){
+        if ((Cam->S4.x > 0) && (Cam->S4.x < 1023)){
+            if (Cam->S4.y > p1y){
                 p2y = p1y;
                 p2 = p1;
-                p1y = LCam.S4.y;
+                p1y = Cam->S4.y;
                 p1 = 4;
             }
-            else if(LCam.S4.y > p2y){
-                p2y = LCam.S4.y;
+            else if(Cam->S4.y > p2y){
+                p2y = Cam->S4.y;
                 p2 = 4;
             }
         }
     }
+    
+    switcheroo(p1,p2, Cam);
+    
+    if (fabsf(atanf(((float) Cam->S1.x - (float) Cam->S2.x) / ((float) Cam->S1.y - (float) Cam->S2.y)) - prevangle) > 1.5){
+        switcheroo(p2,p1, Cam);
+    }
+    
+}
+
+void switcheroo(int p1, int p2, struct Camera *Cam){
     switch (p1){
             case 1:
-                LCam.P1.x = LCam.S1.x;
-                LCam.P1.y = LCam.S1.y;
-                LCam.P1.state = 1;
+                Cam->P1.x = Cam->S1.x;
+                Cam->P1.y = Cam->S1.y;
+                Cam->P1.state = 1;
                 break;
             case 2:
-                LCam.P1.x = LCam.S2.x;
-                LCam.P1.y = LCam.S2.y;
-                LCam.P1.state = 1;
+                Cam->P1.x = Cam->S2.x;
+                Cam->P1.y = Cam->S2.y;
+                Cam->P1.state = 1;
                 break;
             case 3:
-                LCam.P1.x = LCam.S3.x;
-                LCam.P1.y = LCam.S3.y;
-                LCam.P1.state = 1;
+                Cam->P1.x = Cam->S3.x;
+                Cam->P1.y = Cam->S3.y;
+                Cam->P1.state = 1;
                 break;
             case 4:
-                LCam.P1.x = LCam.S4.x;
-                LCam.P1.y = LCam.S4.y;
-                LCam.P1.state = 1;    
+                Cam->P1.x = Cam->S4.x;
+                Cam->P1.y = Cam->S4.y;
+                Cam->P1.state = 1;    
                 break;
             case 0:
-                LCam.P1.x = 0;
-                LCam.P1.y = 0;
-                LCam.P1.state = 0;
+                Cam->P1.x = 0;
+                Cam->P1.y = 0;
+                Cam->P1.state = 0;
                 break;
     }
     
     switch (p2){
             case 1:
-                LCam.P2.x = LCam.S1.x;
-                LCam.P2.y = LCam.S1.y;
-                LCam.P2.state = 1;
+                Cam->P2.x = Cam->S1.x;
+                Cam->P2.y = Cam->S1.y;
+                Cam->P2.state = 1;
                 break;
             case 2:
-                LCam.P2.x = LCam.S2.x;
-                LCam.P2.y = LCam.S2.y;
-                LCam.P2.state = 1;
+                Cam->P2.x = Cam->S2.x;
+                Cam->P2.y = Cam->S2.y;
+                Cam->P2.state = 1;
                 break;
             case 3:
-                LCam.P2.x = LCam.S3.x;
-                LCam.P2.y = LCam.S3.y;
-                LCam.P2.state = 1;
+                Cam->P2.x = Cam->S3.x;
+                Cam->P2.y = Cam->S3.y;
+                Cam->P2.state = 1;
                 break;
             case 4:
-                LCam.P2.x = LCam.S4.x;
-                LCam.P2.y = LCam.S4.y;
-                LCam.P2.state = 1;
+                Cam->P2.x = Cam->S4.x;
+                Cam->P2.y = Cam->S4.y;
+                Cam->P2.state = 1;
                 break;
             case 0:
-                LCam.P2.x = 0;
-                LCam.P2.y = 0;
-                LCam.P2.state = 0;
+                Cam->P2.x = 0;
+                Cam->P2.y = 0;
+                Cam->P2.state = 0;
                 break;
     }
-    
-    
 }
 
-int poscalc(struct Camera LCam, struct Camera Rcam){
-    return 0;
+void poscalc( void ){
+    
 }
 
 int anglecalc(struct Camera LCam, struct Camera Rcam){
