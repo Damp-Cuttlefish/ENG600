@@ -46,9 +46,9 @@ struct resPoint{
 };
 
 struct Coord{
-    signed int x;
-    signed int y;
-    signed int z;
+    float x;
+    float y;
+    float z;
     char state; //Detected, not detected, correlation failed?
 };
 
