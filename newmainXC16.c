@@ -19,6 +19,8 @@ const float x_offset_l = 1.858775653;   // Inside angle between x = 0 and sensor
 const float x_offset_r = 1.282817 ;      // Inside angle between x = 0 and sensor mount 
 const float y_offset_l = 0.200712864;   //Angle between y=0 and vertical
 const float y_offset_r = 0.200712864;   //Angle between y=0 and vertical
+const float x_res = 0.0005624596222;
+const float y_res = 0.0005226897499;
 const float pi = 3.14159265359;
 /*--------------Prototypes--------------*/
 
@@ -59,9 +61,6 @@ char blobs = 0;
 int main(void) 
 {
     
-    float old_x=0;
-    float old_y=0;
-    
     init_setup();    
     /************************Debug************************/
         //T1CONbits.TON = 0;          //Stop timer
@@ -84,30 +83,27 @@ int main(void)
         //LEDPin = 0;
         blobs = sensor_read1(&LCam);
         err = ident(&LCam); 
-        
+        if (err){
+            control_tone = 0;
+            continue;
+        }       
         LRPin = 1;
-        sensor_rst();
-        __delay32(100);
         sensor_init();
         __delay32(500);
         //LEDPin = 0;
         blobs = sensor_read1(&RCam);
-        err |= ident(&RCam);
-        
+        err = ident(&RCam);
+        if (err){
+            control_tone = 0;
+            continue;
+        }
+
         poscalc();
         anglecalc();
-        
-//        if((LCam.P1.state && LCam.P2.state)){
-//            x_target_raw = 4000 - 159*atanf(((float) LCam.S1.x - (float) LCam.S2.x) / ((float) LCam.S1.y - (float) LCam.S2.y));
-//            control_tone = 0;
-//        }
-        if(err)
-            control_tone = 1;
-        else{
-            x_target_raw = 4000-159*panAngle;
-            y_target_raw = 3750+159*tiltAngle;
-            control_tone = 0;
-        }
+        x_target_raw = 4000-159*panAngle;
+        y_target_raw = 3750+159*tiltAngle;
+        control_tone = 0;
+        LEDPin = ~ LEDPin;
 
         control_limit(&x_target_raw, &y_target_raw);
         
@@ -116,28 +112,7 @@ int main(void)
     }
     
     
-               //Enable motors
-    
-//    while(1){
-//        while(BTN1);
-//        index = 0;
-//        __delay32(500000);
-//        step();
-//    }
-//    
-//    while(1)
-//    {
-//        acount += 0.1;
-//        if (acount > 6.28)
-//            acount = 0;
-//        
-//        x_target = 4000 + 100 * sinf(acount);
-//        y_target = 4000 + 100 * cosf(acount);
-//        if (control_limit(&x_target, &y_target))
-//            alert(4);
-//        __delay32(50000);
-//
-//    }
+               
     
     return 0;
 }
@@ -171,7 +146,7 @@ char ident( struct Camera *Cam ){
     int p2y = 2000;
     int p1 = 0;
     int p2 = 0;
-    prevangle = atanf(((float) Cam->P1.x - (float) Cam->P2.x) / ((float) Cam->P1.y - (float) Cam->P2.y)); //-pi => +pi
+    
     
     if(blobs && BLOB1){
         if ((Cam->S1.x > 0) && (Cam->S1.x < 1023)){
@@ -294,11 +269,10 @@ void poscalc( void ){
     //0.401425728 rad v
     //x res =  5.624596222x10^-4
     //y res = 5.226897499x10^-4
-    const float x_res = 0.0005624596222;
-    const float y_res = 0.0005226897499;
     
-    float A, B, C; //Sensor mount, LCam, RCam
-    float a, b, c; //Helm, RCam, LCam
+    
+    float A, B; //Sensor mount, LCam, RCam
+    float b, c; //Helm, RCam, LCam
     float y;
     //p1
     c = x_offset_l - LCam.P1.x*x_res;
@@ -306,9 +280,10 @@ void poscalc( void ){
     y = LCam.P1.y*y_res - y_offset_l; 
     
     A = sensor_width;
+    float sinc = sinf(c);
     
-    B = (A*sinf(c))/sin(pi-(b + c));
-    c_space.P1.z = B*sinf(c);
+    B = (A*sinc)/sin(pi-(b + c));
+    c_space.P1.z = B*sinc;
     c_space.P1.x = B*cosf(c);
     c_space.P1.y = tanf(y)*c_space.P1.z;
     
@@ -316,11 +291,12 @@ void poscalc( void ){
     c = x_offset_l - LCam.P2.x*x_res;
     b = x_offset_r + RCam.P2.x*x_res; 
     y = LCam.P2.y*y_res - y_offset_l; 
+    sinc = sinf(c);
     
     A = sensor_width;
     
-    B = (A*sinf(c))/sin(pi-(b + c));
-    c_space.P2.z = B*sinf(c);
+    B = (A*sinc)/sin(pi-(b + c));
+    c_space.P2.z = B*sinc;
     c_space.P2.x = B*cosf(c);
     c_space.P2.y = tanf(y)*c_space.P2.z;
     
@@ -341,7 +317,7 @@ int anglecalc(struct Camera LCam, struct Camera Rcam){
       //  error(4);
     panAngle = atanf(long_vector.x / long_vector.y);
     //panAngle = long_vector.x;
-    tiltAngle = atan2f(sqrtf(powf(long_vector.y, (float) 2)+ powf(long_vector.x, (float) 2)), long_vector.z);
+    tiltAngle = atan2f(sqrtf(long_vector.y*long_vector.y+ long_vector.x*long_vector.x), long_vector.z);
     //tiltAngle = long_vector.y;
     return 0;
 }

@@ -13,7 +13,6 @@ extern int data[300];
 
 void control_step( void ){
     
-    
     x_error = x_target - POS2CNT;
     float temp = 900 - (float) K*(x_error);
     if (temp < 1)
