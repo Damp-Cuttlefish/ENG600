@@ -68,9 +68,12 @@ void init_setup( void )
     
     /*--------------Initialise PWM--------------*/
     //PWM1
-    P1TCON = 0b1000000000000000; //Enable
-    PWM1CON1 = 0b0000111100110000; //Enable 1H and 2H, all independent
-    P1TPER = 900;
+    P1TCON = 0b1000000000000000; 	//Enable
+    PWM1CON1 = 0b0000111100110000; 	//Enable 1H and 2H, all independent
+    P1TPER = 900; //Approximately 3kHz
+	/*Default oscillator configuration is used, so clock is sourced from the internal
+	 *fast RC oscillator with PLL enabled to give Fosc=8MHz.
+	 *Processor/timer clock is Fosc/2 ~= 4MHz */
 
     P1DC1 = 900;    //PWM1 Generator 1 Duty Cycle
     P1DC2 = 900;    //PWM1 Generator 2 Duty Cycle
@@ -103,8 +106,8 @@ void init_setup( void )
      */
 
     
-    DFLT1CON = 0b0000000000100000; //Filter control reg
-    DFLT2CON = 0b0000000000100000; //Filter control reg
+    DFLT1CON = 0b0000000000100000; //Filter control register
+    DFLT2CON = 0b0000000000100000; //Filter control register
 
     /* 15-11 - null
      * 10-9  - Index Match Value (Not using Index pin)
@@ -119,10 +122,10 @@ void init_setup( void )
      *
      */
    
-    POS1CNT = 4000;                   //Init pos
+    POS1CNT = 4000;                   //Initial position
     MAX1CNT = 10000;               //Counts per rev
     
-    POS2CNT = 4000;                   //Init pos
+    POS2CNT = 4000;                   //Initial position
     MAX2CNT = 10000;               //Counts per rev
     
      /*------------Start I2C------------*/    
@@ -170,7 +173,7 @@ void init_setup( void )
      * 0xB0 >> 1 is the 7 bit address, 0xB0w/0xB1r the 8 bit
      */
     
-    I2C1ADD = master_addr; // Check this against PVision
+    I2C1ADD = master_addr;
     
     
     I2C1MSK = 0;
@@ -188,7 +191,7 @@ void init_setup( void )
     
     //Baud rate config
     I2C1BRG = 35; // Recalculate using formula in i2c manual 98
-    /*
+    /*Fosc/2 ~= 4MHz
      * 
      */
     
@@ -221,16 +224,16 @@ void init_setup( void )
      *          0 = Int clock (Fosc/2)
      * 0    null
      */
-    //Fosc/2 ~= 4Mhz
+    //Fosc/2 ~= 4MHz
     
-    TMR1 = 0; //Timer count register
-    PR1 = 3688;
+    TMR1 = 0; 	//Timer count register
+    PR1 = 3688;	//Timer period register, compared against TMR1
     
     IPC0bits.T1IP = 0x01;   //Interrupt priority level 1
-    IFS0bits.T1IF = 0;      //Clear interrupt flag
-    IEC0bits.T1IE = 1;      //Enable interrupt
+    IFS0bits.T1IF = 0;      //Clear timer 1 interrupt flag
+    IEC0bits.T1IE = 1;      //Enable timer 1 interrupt
     
-    T1CONbits.TON = 1;          //Start timer
+    T1CONbits.TON = 1;      //Start timer
     
 
 }

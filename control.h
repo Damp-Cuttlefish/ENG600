@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 void control_step( void );
+void control_calib( void );
 char control_limit(float *x, float *y);
 
 

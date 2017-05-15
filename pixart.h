@@ -17,7 +17,6 @@ struct Camera;
 void sensor_init( void );
 char sensor_read( struct Camera * );
 char sensor_read1( struct Camera * );
-void send_byte( char );
 void sensor_ping(void);
 void sensor_rst( void );
 
